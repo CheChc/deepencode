@@ -1,7 +1,7 @@
 {
-  "name": "dsh-tui-hermes",
+  "name": "deepencode",
   "version": "0.1.0",
-  "description": "opencode-style interactive terminal UI for DeepSeek Harness: build/plan modes, native + third-party model switching, Hermes-style status bar (cache hit, context usage)",
+  "description": "deepencode: opencode-style interactive terminal UI for DeepSeek Harness: build/plan modes, native + third-party model switching, Hermes-style status bar (cache hit, context usage)",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",

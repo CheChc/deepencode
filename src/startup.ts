@@ -6,7 +6,7 @@ import type { Context } from "@deepseek-ai/cordis";
  * The TUI app's command-line provider: parses `--resume` and `--help`, then
  * publishes {@link TUI_STARTUP_SERVICE}. The runner is an ordinary consumer
  * whose lazy config waits for that service.
- * @module dsh-tui-hermes/startup
+ * @module deepencode/startup
  */
 
 /** Stable Cordis plugin name. */

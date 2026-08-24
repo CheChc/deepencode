@@ -3,11 +3,11 @@ import type { Context } from "@deepseek-ai/cordis";
 import { TuiRuntime } from "./runner.js";
 
 /**
- * dsh-tui-hermes — opencode-style interactive terminal surface over dsh-base.
+ * deepencode — opencode-style interactive terminal surface over dsh-base.
  * The runner plugin owns the terminal loop; the startup provider
- * (`dsh-tui-hermes/startup`) parses the inner command line and publishes the
+ * (`deepencode/startup`) parses the inner command line and publishes the
  * `tuiStartup` service this row's lazy config reads.
- * @module dsh-tui-hermes
+ * @module deepencode
  */
 
 /** Stable Cordis plugin name. */

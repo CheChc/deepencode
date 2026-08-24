@@ -1,4 +1,4 @@
-# dsh-tui-hermes
+# deepencode
 
 opencode 风格的 **DeepSeek Harness (dsh) 终端交互界面**——一个 out-of-tree plugin bundle,直接骑在 `dsh-base` 之上,不引入 Web 运行时。
 
@@ -26,7 +26,7 @@ opencode 风格的 **DeepSeek Harness (dsh) 终端交互界面**——一个 out
 npm install -g @deepseek-ai/dsh
 
 # 2. 建 tui profile 并装入本插件
-dsh plugin --profile tui add @your-scope/dsh-tui-hermes   # 或 npm 包名
+dsh plugin --profile tui add @your-scope/deepencode   # 或 npm 包名
 
 # 3. 启动
 dsh --profile tui                          # 新会话
@@ -36,7 +36,7 @@ dsh --profile tui --resume <sessionId>     # 恢复会话
 本地开发调试:
 
 ```bash
-git clone <this-repo> && cd dsh-tui-hermes
+git clone <this-repo> && cd deepencode
 pnpm install && pnpm build
 dsh plugin --profile tui add file:$PWD   # 链接本地包
 dsh --profile tui

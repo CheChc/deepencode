@@ -1,4 +1,4 @@
-# dsh-tui-hermes bundle patch: an opencode-style interactive terminal surface
+# deepencode bundle patch: an opencode-style interactive terminal surface
 # riding directly over dsh-base (no Host, HTTP server, or browser plugins).
 # Layout follows the shipped headless/web bundles: same tool-mode opt-in, then
 # the extra service rows a terminal surface needs, then the app's own rows.
@@ -25,10 +25,10 @@
     # The app surface itself: startup parses the inner command line, the runner
     # owns the interactive terminal loop.
     - id: tui-startup
-      name: 'dsh-tui-hermes/startup'
+      name: 'deepencode/startup'
 
     - id: tui-runner
-      name: 'dsh-tui-hermes'
+      name: 'deepencode'
       inject: [tuiStartup]
       config:
         resume: !!js ctx.tuiStartup.resume
