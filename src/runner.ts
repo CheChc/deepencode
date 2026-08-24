@@ -18,6 +18,7 @@ import { Transcript } from "./ui/transcript.js";
 import { StatusBar } from "./ui/status-bar.js";
 import type { StatusSnapshot } from "./ui/status-bar.js";
 import { theme, modeText, spinnerFrames } from "./ui/theme.js";
+import { whaleMarkedPadded } from "./ui/logo.js";
 import { COMMANDS } from "./commands.js";
 import type { CommandEnv } from "./commands.js";
 import { pickOption } from "./ui/dialogs.js";
@@ -164,18 +165,25 @@ export class TuiRuntime {
     });
     await this.controller.start(this.resumeId);
 
-    // Hermes-style welcome banner: product identity, model, workspace, hints.
+    // Hermes-style welcome banner: whale mark + wordmark, model, workspace, hints.
     const cwd = process.cwd().replace(process.env.HOME ?? "~", "~");
     const sel = this.controller.selection;
-    this.transcript.append({
-      kind: "welcome",
-      lines: [
-        `${theme.accent("╭─")} ${theme.accent.bold("deepencode")} ${theme.faint("· DeepSeek Harness TUI")}`,
-        `${theme.accent("│")} 模型 ${sel ? `${sel.model}${sel.reasoningEffort ? ` (${sel.reasoningEffort})` : ""}` : "…"}${theme.faint(" · ")}${cwd}`,
-        `${theme.accent("│")} ${theme.faint("Tab build⇄plan · Shift+Tab 权限 · /help · Ctrl+C 取消/退出")}`,
-        `${theme.accent("╰─")}`,
-      ],
-    });
+    const wordmark = [
+      `${theme.accent.bold("deepencode")} ${theme.faint("· DeepSeek Harness TUI")}`,
+      `模型 ${sel ? `${sel.model}${sel.reasoningEffort ? ` (${sel.reasoningEffort})` : ""}` : "…"}${theme.faint(" · ")}${cwd}`,
+      theme.faint("Tab build⇄plan · Shift+Tab 权限 · /help · Ctrl+C 取消/退出"),
+    ];
+    const whale = whaleMarkedPadded();
+    // Side-by-side: whale left, wordmark right, then a closing rule.
+    const lines: string[] = [];
+    const rows = Math.max(whale.length, wordmark.length + 1);
+    for (let i = 0; i < rows; i++) {
+      const left = whale[i] ?? " ".repeat(24);
+      const right = i === 0 ? wordmark[0] : i === 1 ? `  ${wordmark[1]}` : i === 2 ? `  ${wordmark[2]}` : "";
+      lines.push(right === "" ? left : `${left}${right}`);
+    }
+    lines.push(theme.accent("  ╰─") + theme.faint(" deepencode · DeepSeek Harness TUI"));
+    this.transcript.append({ kind: "welcome", lines });
 
     tui.setFocus(this.editor);
     tui.start();

@@ -80,7 +80,8 @@ export class Transcript extends Container {
       case "divider":
         return [theme.divider(`  ── ${item.text} ──`)];
       case "welcome":
-        return item.lines.map((line, i) => (i === 0 ? line : theme.faint(line)));
+        // Lines arrive pre-styled (brand + wordmark composition).
+        return item.lines;
       case "assistant":
         return [item.text];
     }
