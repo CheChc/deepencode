@@ -20,6 +20,28 @@ opencode 风格的 **DeepSeek Harness (dsh) 终端交互界面**——一个 out
 | **会话** | `--resume <id>` 恢复并回放历史;`/sessions` 列出持久会话 |
 | **状态** | `/status` 会话信息、`/help` 全部命令、`Ctrl+C` 取消当前轮次(再按退出) |
 
+## 界面预览
+
+### 对话界面
+
+![对话界面](docs/screenshots/conversation.png)
+
+Hermes 风格底部状态栏:模型名 · 模式徽章 · 权限 · 缓存命中率 `♻` · 上下文用量/上限进度条 · 会话时长。
+
+### plan 模式(橙色)
+
+![plan 模式](docs/screenshots/plan-mode.png)
+
+`Tab` 或 `/plan` 切入 plan 模式:橙色徽章 + 橙色编辑器边框 + 工具调用轨迹(思考行折叠展示)。
+
+### 模型选择器
+
+![模型选择器](docs/screenshots/model-picker.png)
+
+`/model` 弹窗:内置 DeepSeek 供应商与全部已知第三方路由,选择后可选思考强度。
+
+> 截图由 `scripts/screenshot.mjs` 生成:录制真实会话的 ANSI 流 → xterm 仿真重放 → headless Chrome 出图。
+
 ## 安装
 
 ```bash

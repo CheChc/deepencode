@@ -75,6 +75,9 @@ importers:
       '@types/node':
         specifier: ^26.2.0
         version: 26.2.0
+      '@xterm/headless':
+        specifier: ^6.0.0
+        version: 6.0.0
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -545,6 +548,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@xterm/headless@6.0.0':
+    resolution: {integrity: sha512-5Yj1QINYCyzrZtf8OFIHi47iQtI+0qYFPHmouEfG8dHNxbZ9Tb9YGSuLcsEwj9Z+OL75GJqPyJbyoFer80a2Hw==}
+
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
@@ -960,6 +966,8 @@ snapshots:
 
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
+
+  '@xterm/headless@6.0.0': {}
 
   argparse@2.0.1: {}
 
