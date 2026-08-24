@@ -11,6 +11,22 @@ export declare const theme: {
     readonly user: import("chalk").ChalkInstance;
     readonly divider: import("chalk").ChalkInstance;
 };
+/**
+ * opencode-aligned mode colors: build is blue, plan is orange.
+ * Used for the status-bar badges and mode-change notices.
+ */
+export declare const modeColors: {
+    readonly build: {
+        readonly badge: import("chalk").ChalkInstance;
+        readonly text: import("chalk").ChalkInstance;
+    };
+    readonly plan: {
+        readonly badge: import("chalk").ChalkInstance;
+        readonly text: import("chalk").ChalkInstance;
+    };
+};
+export declare function modeBadge(mode: "build" | "plan"): string;
+export declare function modeText(mode: "build" | "plan", text: string): string;
 export declare const markdownTheme: {
     heading: (text: string) => string;
     link: (text: string) => string;

@@ -16,7 +16,7 @@ import { SessionController } from "./services/session-view.js";
 import { Transcript } from "./ui/transcript.js";
 import { StatusBar } from "./ui/status-bar.js";
 import type { StatusSnapshot } from "./ui/status-bar.js";
-import { theme } from "./ui/theme.js";
+import { theme, modeText } from "./ui/theme.js";
 import { COMMANDS } from "./commands.js";
 import type { CommandEnv } from "./commands.js";
 import { pickOption } from "./ui/dialogs.js";
@@ -47,7 +47,8 @@ export class TuiRuntime {
   private readonly ctx: Context;
   private readonly quit: (code?: number) => void;
   private readonly resumeId?: string;
-  private readonly tui = new TuiAltScreen(new ProcessTerminal());
+  private readonly terminal = new ProcessTerminal();
+  private readonly tui = new TuiAltScreen(this.terminal);
   private readonly transcript = new Transcript();
   private readonly statusBar = new StatusBar({
     model: "…",
@@ -61,6 +62,7 @@ export class TuiRuntime {
   private controller?: SessionController;
   private mode: "build" | "plan" = "build";
   private ctrlCPending = false;
+  private originalBackground?: { r: number; g: number; b: number };
   private readonly disposers: Array<() => void> = [];
 
   constructor(opts: TuiRuntimeOptions) {
@@ -154,6 +156,30 @@ export class TuiRuntime {
 
     tui.setFocus(this.editor);
     tui.start();
+    void this.applyBlackBackground();
+  }
+
+  /**
+   * opencode-style dark canvas: repaint the terminal background black via
+   * OSC 11. Only applied when the original color could be read, so the
+   * original value can always be restored on exit.
+   */
+  private async applyBlackBackground(): Promise<void> {
+    try {
+      const original = await this.tui.queryTerminalBackgroundColor({ timeoutMs: 800 });
+      if (original === undefined) return;
+      this.originalBackground = original;
+      this.terminal.write("\x1b]11;rgb:0000/0000/0000\x1b\\");
+    } catch {
+      /* unsupported terminal: per-line bg padding still applies */
+    }
+  }
+
+  private restoreBackground(): void {
+    if (!this.originalBackground) return;
+    const { r, g, b } = this.originalBackground;
+    const hex = (v: number) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+    this.terminal.write(`\x1b]11;rgb:${hex(r)}${hex(r)}/${hex(g)}${hex(g)}/${hex(b)}${hex(b)}\x1b\\`);
   }
 
   private async onSubmit(text: string): Promise<void> {
@@ -218,7 +244,7 @@ export class TuiRuntime {
   private async toggleMode(): Promise<void> {
     const target = this.mode === "plan" ? "build" : "plan";
     await this.controller?.setPlan(target === "plan");
-    this.transcript.append({ kind: "system", text: `模式 → ${target.toUpperCase()}${target === "plan" ? " (只读规划)" : ""}` });
+    this.transcript.append({ kind: "system", text: `模式 → ${modeText(target, target.toUpperCase())}${target === "plan" ? " (只读规划)" : ""}` });
     this.tui.requestRender();
   }
 
@@ -307,6 +333,7 @@ export class TuiRuntime {
       }
     }
     this.disposers.length = 0;
+    this.restoreBackground();
     this.tui.stop();
   }
 }

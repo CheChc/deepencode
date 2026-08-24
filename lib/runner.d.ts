@@ -13,6 +13,7 @@ export declare class TuiRuntime {
     private readonly ctx;
     private readonly quit;
     private readonly resumeId?;
+    private readonly terminal;
     private readonly tui;
     private readonly transcript;
     private readonly statusBar;
@@ -20,9 +21,17 @@ export declare class TuiRuntime {
     private controller?;
     private mode;
     private ctrlCPending;
+    private originalBackground?;
     private readonly disposers;
     constructor(opts: TuiRuntimeOptions);
     start(): Promise<void>;
+    /**
+     * opencode-style dark canvas: repaint the terminal background black via
+     * OSC 11. Only applied when the original color could be read, so the
+     * original value can always be restored on exit.
+     */
+    private applyBlackBackground;
+    private restoreBackground;
     private onSubmit;
     private handleCtrlC;
     private toggleMode;

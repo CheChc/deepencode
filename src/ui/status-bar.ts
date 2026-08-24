@@ -1,6 +1,7 @@
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { Component } from "@earendil-works/pi-tui";
 import chalk from "chalk";
+import { modeBadge } from "./theme.js";
 
 /** Snapshot feeding the Hermes-style status bar. */
 export interface StatusSnapshot {
@@ -96,7 +97,8 @@ export class StatusBar implements Component {
     // model id while third-party routes keep the provider prefix for context.
     const modelFull = s.provider === "deepseek-official" ? s.model : `${s.provider}/${s.model}`;
     const model = truncateToWidth(modelFull, 26, "");
-    const mode = s.mode === "plan" ? chalk.bgCyan.black(" PLAN ") : chalk.bgBlue.black(" BUILD ");
+    // opencode-aligned: plan = orange, build = blue.
+    const mode = modeBadge(s.mode);
     const perm: Record<string, string> = {
       "read-only": chalk.gray("ro"),
       "workspace-write": chalk.green("ws"),
@@ -150,8 +152,11 @@ export class StatusBar implements Component {
   render(width: number): string[] {
     if (this.cachedLines && this.cachedWidth === width) return this.cachedLines;
     const line = truncateToWidth(this.segments(width).join(" │ "), width);
+    // Full-width black background keeps the opencode-style dark canvas even on
+    // terminals that ignore the OSC 11 background set.
+    const padded = chalk.bgBlack(line + " ".repeat(Math.max(0, width - visibleWidth(line))));
     this.cachedWidth = width;
-    this.cachedLines = [line];
+    this.cachedLines = [padded];
     return this.cachedLines;
   }
 

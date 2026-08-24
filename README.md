@@ -77,6 +77,12 @@ dsh --profile tui
   - `ctx.userQuestions.registerProvider` + `approval/request` waterfall 终端应答
 - **兼容性**:dsh `0.1.1-rc.2`;Node ≥ 22。
 
+## 配色(opencode 对齐)
+
+- **BUILD = 蓝**(#2563eb)、**PLAN = 橙**(#ea580c),状态栏徽章与模式切换提示均使用对应颜色;
+- **整体黑色背景**:启动时经 OSC 11 将终端背景置黑(iTerm2/Kitty/Ghostty 支持),退出时恢复原背景色;不支持 OSC 11 的终端退化为逐行黑色填充;
+- 状态栏始终全宽黑底,弹窗(审批/选择器/输入)黑底圆角风格。
+
 ## 状态栏说明(Hermes 参考)
 
 ```

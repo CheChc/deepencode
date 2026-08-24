@@ -1,4 +1,4 @@
-import { Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
+import { Key, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { Component, Focusable, OverlayHandle, TUI } from "@earendil-works/pi-tui";
 import chalk from "chalk";
 import { theme } from "./theme.js";
@@ -43,11 +43,12 @@ class OptionMenu implements Component, Focusable {
   }
 
   render(width: number): string[] {
-    const lines: string[] = [theme.accent(this.title)];
+    const pad = (line: string) => chalk.bgBlack(truncateToWidth(line, width) + " ".repeat(Math.max(0, width - visibleWidth(line))));
+    const lines: string[] = [pad(theme.accent(this.title))];
     for (const line of this.body.split("\n")) {
-      lines.push(truncateToWidth(line, width));
+      lines.push(pad(line));
     }
-    lines.push("");
+    lines.push(pad(""));
     this.options.forEach((opt, i) => {
       const prefix = i === this.selectedIndex ? `${theme.accent("→")} ` : "  ";
       const desc = opt.description ? theme.faint(`  ${opt.description}`) : "";
@@ -131,12 +132,13 @@ class TextPrompt implements Component, Focusable {
     const at = this.value.slice(this.cursor, this.cursor + 1) || " ";
     const after = this.value.slice(this.cursor + 1);
     const line = `${theme.accent("?")} ${before}${chalk.inverse(at)}${after}`;
+    const pad = (s: string) => chalk.bgBlack(truncateToWidth(s, width) + " ".repeat(Math.max(0, width - visibleWidth(s))));
     return [
-      theme.accent(this.title),
-      "",
-      truncateToWidth(line, width),
-      "",
-      theme.faint("Enter 确认 · Esc 取消"),
+      pad(theme.accent(this.title)),
+      pad(""),
+      pad(line),
+      pad(""),
+      pad(theme.faint("Enter 确认 · Esc 取消")),
     ];
   }
 
