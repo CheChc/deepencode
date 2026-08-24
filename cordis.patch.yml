@@ -1,0 +1,34 @@
+# dsh-tui-hermes bundle patch: an opencode-style interactive terminal surface
+# riding directly over dsh-base (no Host, HTTP server, or browser plugins).
+# Layout follows the shipped headless/web bundles: same tool-mode opt-in, then
+# the extra service rows a terminal surface needs, then the app's own rows.
+
+# The shared module-reload HMR row stays off for the production surface.
+- id: hmr
+  disabled: true
+
+- id: system-prompt
+  config:
+    persona: >-
+      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+
+- id: tools
+  config:
+    # Keep the same temporary process-wide Code Mode opt-in as the Web surface.
+    mode: !!js process.env.DSH_TOOLS_MODE
+
+- insert:
+    # Code Mode is a core execution capability, not a Web component.
+    - id: code-runtime
+      name: '@deepseek-ai/dsh-code-runtime-worker-thread'
+
+    # The app surface itself: startup parses the inner command line, the runner
+    # owns the interactive terminal loop.
+    - id: tui-startup
+      name: 'dsh-tui-hermes/startup'
+
+    - id: tui-runner
+      name: 'dsh-tui-hermes'
+      inject: [tuiStartup]
+      config:
+        resume: !!js ctx.tuiStartup.resume

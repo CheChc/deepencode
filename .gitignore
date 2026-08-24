@@ -1,0 +1,5 @@
+node_modules/
+*.tsbuildinfo
+.DS_Store
+# 调试产物
+/tmp/
