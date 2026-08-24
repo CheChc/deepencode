@@ -11,7 +11,8 @@ opencode 风格的 **DeepSeek Harness (dsh) 终端交互界面**——一个 out
 | 能力 | 实现 |
 |---|---|
 | **build / plan 模式** | `Tab` 一键切换;`/plan [消息]` 进入、`/plan off` 退出;plan 审批走终端内 `📋 批准计划` 弹窗 |
-| **模型切换** | `/model`:供应商 → 模型 → 推理强度 三级选择;DeepSeek 原生模型 + 任意第三方 OpenAI 兼容供应商 |
+| **模型切换** | `/model`:供应商 → 模型 → 思考强度 三级选择;DeepSeek 原生模型 + 任意第三方 OpenAI 兼容供应商 |
+| **动态思考强度** | `/effort`:不换模型直接切换思考强度(与 dsh web 模型选择器一致),状态栏模型段实时显示 `model·effort` |
 | **第三方供应商管理** | `/provider add`(route/baseURL/APIKey/模型列表)、`/provider rm`;写入 `settings.yaml` 热生效,与 dsh web 的 Models 页一致 |
 | **Hermes 风格状态栏** | 模型名、缓存命中率 `♻ %`、上下文用量/上限 + 彩色阈值进度条、会话时长、模式/权限徽章 |
 | **权限预设** | `Shift+Tab` 循环;`/permissions read-only / workspace-write / danger-full-access` |
@@ -47,7 +48,8 @@ dsh --profile tui
 | 命令 | 说明 |
 |---|---|
 | `/plan [off\|消息]` | 进入/退出 plan 模式;带消息则进入并提交 |
-| `/model` | 供应商 → 模型 → 推理强度 |
+| `/model` | 供应商 → 模型 → 思考强度 |
+| `/effort` | 不换模型,直接切换当前模型的思考强度 |
 | `/provider add\|rm` | 第三方供应商管理 |
 | `/permissions [name]` | 权限预设切换 |
 | `/sessions` | 持久会话列表 |
@@ -58,7 +60,7 @@ dsh --profile tui
 ## 快捷键
 
 - `Enter` 发送;`Shift+Enter` / `Alt+Enter` 换行;`Tab` 文件路径补全(输入框非空时)
-- `Tab`(输入框为空)build ⇄ plan 切换
+- `Tab`(输入框为空)build ⇄ plan 切换(静默,状态栏徽章/编辑器边框即反馈)
 - `Shift+Tab` 权限预设循环
 - `Ctrl+C` 运行中取消轮次;空闲时退出
 - 弹窗:`↑/↓` 选择、`Enter` 确认、`Esc` 取消
@@ -76,6 +78,13 @@ dsh --profile tui
   - `ctx.sessionProjections` 读取 `tokenUsage`(缓存命中率)与 `contextPressure`(上下文用量)
   - `ctx.userQuestions.registerProvider` + `approval/request` waterfall 终端应答
 - **兼容性**:dsh `0.1.1-rc.2`;Node ≥ 22。
+
+## 多终端支持
+
+- **macOS / Windows / Linux** 全平台可用:pi-tui 自带 darwin(arm64/x64)与 win32(arm64/x64)原生预编译;Windows 下通过 Windows Terminal(ConPTY)运行,无需安装额外字体;
+- 跨平台路径显示统一走 `os.homedir()`(Windows 下 `USERPROFILE`);OSC 11 黑色背景在不支持的终端上自动降级为逐行黑底;
+- Windows 推荐 Windows Terminal / VS Code 终端;iTerm2、Kitty、Ghostty、WezTerm 体验最佳(支持 Shift+Enter 区分);
+- UI 文案全中文(含 `--help`、斜杠命令说明、弹窗提示)。
 
 ## 配色(opencode 对齐)
 

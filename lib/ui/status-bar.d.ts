@@ -7,6 +7,8 @@ export interface StatusSnapshot {
     provider: string;
     /** Session mode: build | plan */
     mode: "build" | "plan";
+    /** Active reasoning effort (shown as a suffix on the model segment). */
+    effort?: string;
     /** Agent preset id (standard/code/minimal/...) */
     preset?: string;
     /** Permission preset id: read-only | workspace-write | danger-full-access | custom */

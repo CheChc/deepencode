@@ -23,7 +23,7 @@ export function resultSummary(message: unknown, max = 100): string {
       return one.length > max ? one.slice(0, max) + "…" : one;
     }
   }
-  return "(empty)";
+  return "(空)";
 }
 
 /** Tool-call id of a tool-result message (lives inside its tool-result block). */
@@ -182,8 +182,8 @@ export function mapEvent(event: SessionEvent, state: MapperState, live: number):
       const error = (e.data as { error?: { code?: string } })?.error;
       const callId = toolResultCallId(msg);
       const existing = state.tools.get(callId);
-      const summary = error ? `error ${error.code}` : resultSummary(msg);
-      const item: TranscriptItem = { kind: "tool-result", id: callId, name: existing?.name ?? "tool", ok: !error, summary };
+      const summary = error ? `错误 ${error.code}` : resultSummary(msg);
+      const item: TranscriptItem = { kind: "tool-result", id: callId, name: existing?.name ?? "工具", ok: !error, summary };
       if (existing) {
         ops.push({ op: "update", index: existing.index, item });
       } else {

@@ -1,4 +1,3 @@
-import { truncateToWidth } from "@earendil-works/pi-tui";
 import type { TUI } from "@earendil-works/pi-tui";
 import type { Context } from "@deepseek-ai/cordis";
 import type { SessionController } from "./services/session-view.js";
@@ -33,7 +32,7 @@ export interface CommandSpec {
 export const COMMANDS: CommandSpec[] = [
   {
     name: "help",
-    description: "list slash commands",
+    description: "列出全部斜杠命令",
     run(env) {
       const lines = COMMANDS.map((c) => theme.accent(`/${c.name}`) + theme.faint(` — ${c.description}`));
       env.transcript.append({ kind: "system", text: lines.join("\n") });
@@ -42,22 +41,21 @@ export const COMMANDS: CommandSpec[] = [
   },
   {
     name: "plan",
-    description: "enter plan mode (off = exit; text = enter + steer)",
+    description: "进入 plan 模式(off 退出;带文字则进入并提交)",
     run(env, args) {
       const trimmed = args.trim();
+      // 静默切换:状态栏徽章与编辑器边框即反馈,不刷转录日志。
       if (trimmed === "off") {
         void env.controller.setPlan(false);
-        env.transcript.append({ kind: "system", text: "已退出 plan 模式 → build" });
       } else {
         void env.controller.setPlan(true, trimmed === "" ? undefined : trimmed);
-        env.transcript.append({ kind: "system", text: trimmed === "" ? "已进入 plan 模式(只读规划,批准后切回 build)" : `已进入 plan 模式并提交:${truncateToWidth(trimmed, 60)}` });
       }
       env.tui.requestRender();
     },
   },
   {
     name: "model",
-    description: "pick provider / model / reasoning effort",
+    description: "选择供应商 / 模型 / 思考强度",
     async run(env) {
       const providers = listProviders(env.ctx);
       if (providers.length === 0) {
@@ -74,8 +72,38 @@ export const COMMANDS: CommandSpec[] = [
     },
   },
   {
+    name: "effort",
+    description: "切换当前模型的思考强度(不换模型)",
+    async run(env) {
+      const sel = env.controller.selection;
+      if (!sel) return;
+      const meta = await resolveModelMeta(env.ctx, sel.provider, sel.model);
+      const efforts = meta.reasoningEfforts ?? [];
+      if (efforts.length === 0) {
+        env.transcript.append({ kind: "system", text: "当前模型不支持选择思考强度" });
+        env.tui.requestRender();
+        return;
+      }
+      pickOne(
+        env.tui,
+        `思考强度 · ${sel.model}`,
+        [
+          { value: "", label: "默认", description: sel.reasoningEffort ? undefined : "· 当前" },
+          ...efforts.map((e) => ({ value: e.id, label: e.name, description: sel.reasoningEffort === e.id ? "· 当前" : undefined })),
+        ],
+        (effort) => {
+          // 静默生效:状态栏模型段的强度后缀即反馈。
+          const choice: ModelSelection = { ...sel, reasoningEffort: effort === "" ? undefined : (effort as ReasoningEffortId) };
+          env.controller.setSelection(choice);
+          void applyDefault(env, choice);
+          env.tui.requestRender();
+        },
+      );
+    },
+  },
+  {
     name: "provider",
-    description: "manage third-party providers: add / rm",
+    description: "管理第三方供应商:add 添加 / rm 移除",
     async run(env, args) {
       const [sub, ...rest] = args.trim().split(/\s+/);
       if (sub === "add") {
@@ -90,13 +118,13 @@ export const COMMANDS: CommandSpec[] = [
   },
   {
     name: "permissions",
-    description: "switch permission preset: read-only / workspace-write / danger-full-access",
+    description: "切换权限预设:read-only / workspace-write / danger-full-access",
     run(env, args) {
       const names = ["read-only", "workspace-write", "danger-full-access"];
       const target = args.trim();
       if (names.includes(target)) {
+        // 静默切换:状态栏权限徽章即反馈。
         env.controller.setPermission(target);
-        env.transcript.append({ kind: "system", text: `权限预设 → ${target}` });
         env.tui.requestRender();
         return;
       }
@@ -107,7 +135,6 @@ export const COMMANDS: CommandSpec[] = [
         names.map((n) => ({ value: n, label: n })),
         (value) => {
           env.controller.setPermission(value);
-          env.transcript.append({ kind: "system", text: `权限预设 → ${value}` });
           env.tui.requestRender();
         },
       );
@@ -115,7 +142,7 @@ export const COMMANDS: CommandSpec[] = [
   },
   {
     name: "sessions",
-    description: "list persisted sessions and resume one",
+    description: "列出持久会话并恢复",
     async run(env) {
       let records: Array<{ id: string; title?: string; updatedAt?: number }> = [];
       try {
@@ -145,7 +172,7 @@ export const COMMANDS: CommandSpec[] = [
   },
   {
     name: "status",
-    description: "show session info (model / mode / permission / counters)",
+    description: "显示会话信息(模型/模式/权限/轮次)",
     run(env) {
       const snap = env.controller.planState();
       const ctl = env.controller;
@@ -163,7 +190,7 @@ export const COMMANDS: CommandSpec[] = [
   },
   {
     name: "quit",
-    description: "exit the TUI",
+    description: "退出 TUI",
     run(env) {
       env.quit(0);
     },
@@ -189,12 +216,13 @@ async function pickModel(env: CommandEnv, provider: string): Promise<void> {
         pickOne(
           env.tui,
           `推理强度 · ${model}`,
-          [{ value: "", label: "默认", description: "跟随模型默认" }, ...efforts.map((e) => ({ value: e.id, label: e.name }))],
+          [{ value: "", label: "默认", description: env.controller.selection?.reasoningEffort ? undefined : "· 当前" },
+           ...efforts.map((e) => ({ value: e.id, label: e.name, description: env.controller.selection?.reasoningEffort === e.id ? "· 当前" : undefined }))],
           (effort) => {
             const choice: ModelSelection = { provider, model, reasoningEffort: effort === "" ? undefined : (effort as ReasoningEffortId) };
+            // 静默生效:状态栏模型段即反馈。
             env.controller.setSelection(choice);
             void applyDefault(env, choice);
-            env.transcript.append({ kind: "system", text: `模型 → ${provider}/${model}${effort ? ` (${effort})` : ""}` });
             env.tui.requestRender();
           },
         );
@@ -202,7 +230,6 @@ async function pickModel(env: CommandEnv, provider: string): Promise<void> {
         const choice: ModelSelection = { provider, model };
         env.controller.setSelection(choice);
         void applyDefault(env, choice);
-        env.transcript.append({ kind: "system", text: `模型 → ${provider}/${model}` });
         env.tui.requestRender();
       } else {
         pickEffort();
@@ -220,10 +247,10 @@ async function applyDefault(env: CommandEnv, choice: ModelSelection): Promise<vo
 }
 
 async function addProviderFlow(env: CommandEnv): Promise<void> {
-  promptText(env.tui, "新供应商 route(如 openai 或 my-gateway)", "", (route) => {
-    promptText(env.tui, "baseURL(如 https://api.openai.com/v1)", "", (baseURL) => {
+  promptText(env.tui, "新供应商 ID(如 openai 或 my-gateway)", "", (route) => {
+    promptText(env.tui, "接口地址 baseURL(如 https://api.openai.com/v1)", "", (baseURL) => {
       promptText(env.tui, "API Key 环境变量名(如 OPENAI_API_KEY)", "OPENAI_API_KEY", (apiKeyEnv) => {
-        promptText(env.tui, "模型列表,逗号分隔(如 gpt-4o,gpt-4o-mini;已知路由如 openai/anthropic 可留空)", "", async (modelsRaw) => {
+        promptText(env.tui, "模型列表,逗号分隔(如 gpt-4o,gpt-4o-mini;已知供应商可留空)", "", async (modelsRaw) => {
           try {
             const section = env.ctx.settings.get(settingsNamespace("llm-pi-ai")) as { providers?: Record<string, unknown> } | undefined;
             const providers = { ...(section?.providers ?? {}) };

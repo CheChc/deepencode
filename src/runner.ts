@@ -9,6 +9,7 @@ import {
   matchesKey,
   isViewportTUI,
 } from "@earendil-works/pi-tui";
+import os from "node:os";
 import chalk from "chalk";
 import type { Context } from "@deepseek-ai/cordis";
 import type { ApprovalRequest, ApprovalOutcome } from "@deepseek-ai/dsh-user-approval";
@@ -17,7 +18,7 @@ import { SessionController } from "./services/session-view.js";
 import { Transcript } from "./ui/transcript.js";
 import { StatusBar } from "./ui/status-bar.js";
 import type { StatusSnapshot } from "./ui/status-bar.js";
-import { theme, modeText, spinnerFrames } from "./ui/theme.js";
+import { theme, spinnerFrames } from "./ui/theme.js";
 import { COMMANDS } from "./commands.js";
 import type { CommandEnv } from "./commands.js";
 import { pickOption } from "./ui/dialogs.js";
@@ -165,7 +166,10 @@ export class TuiRuntime {
     await this.controller.start(this.resumeId);
 
     // Hermes-style welcome banner: product identity, model, workspace, hints.
-    const cwd = process.cwd().replace(process.env.HOME ?? "~", "~");
+    // os.homedir() 在 mac/win/linux 均正确;startsWith+slice 避免误替换。
+    const home = os.homedir();
+    const rawCwd = process.cwd();
+    const cwd = rawCwd.startsWith(home) ? "~" + rawCwd.slice(home.length) : rawCwd;
     const sel = this.controller.selection;
     this.transcript.append({
       kind: "welcome",
@@ -280,9 +284,9 @@ export class TuiRuntime {
   }
 
   private async toggleMode(): Promise<void> {
+    // 静默切换:opencode 风格,徽章与编辑器边框即反馈,不刷日志。
     const target = this.mode === "plan" ? "build" : "plan";
     await this.controller?.setPlan(target === "plan");
-    this.transcript.append({ kind: "system", text: `模式 → ${modeText(target, target.toUpperCase())}${target === "plan" ? " (只读规划)" : ""}` });
     this.tui.requestRender();
   }
 
@@ -291,7 +295,6 @@ export class TuiRuntime {
     const current = this.controller?.currentPermission() ?? "workspace-write";
     const next = order[(order.indexOf(current) + 1) % order.length];
     this.controller?.setPermission(next);
-    this.transcript.append({ kind: "system", text: `权限 → ${next}` });
     this.tui.requestRender();
   }
 
@@ -320,7 +323,7 @@ export class TuiRuntime {
           this.tui,
           title,
           body,
-          options.length > 0 ? options : [{ value: "Approve", label: "Approve" }],
+          options.length > 0 ? options : [{ value: "Approve", label: "Approve", description: "批准计划并退出 plan 模式" }],
           (selected) => {
             resolve({ answers: [{ id: question.id, selected: [selected] }] });
           },
@@ -342,7 +345,7 @@ export class TuiRuntime {
   private answerApproval(req: ApprovalRequest): Promise<ApprovalOutcome> {
     return new Promise((resolve) => {
       const title = `允许执行工具 ${req.toolName}?`;
-      const body = req.reason ?? "(no reason given)";
+      const body = req.reason ?? "无说明";
       pickOption(
         this.tui,
         title,

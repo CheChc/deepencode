@@ -11,6 +11,8 @@ export interface StatusSnapshot {
   provider: string;
   /** Session mode: build | plan */
   mode: "build" | "plan";
+  /** Active reasoning effort (shown as a suffix on the model segment). */
+  effort?: string;
   /** Agent preset id (standard/code/minimal/...) */
   preset?: string;
   /** Permission preset id: read-only | workspace-write | danger-full-access | custom */
@@ -101,7 +103,8 @@ export class StatusBar implements Component {
         : chalk.hex("#58a6ff")("⚕");
     // Hermes truncates long model names; the official provider shows the bare
     // model id while third-party routes keep the provider prefix for context.
-    const modelFull = s.provider === "deepseek-official" ? s.model : `${s.provider}/${s.model}`;
+    const modelBase = s.provider === "deepseek-official" ? s.model : `${s.provider}/${s.model}`;
+    const modelFull = s.effort ? `${modelBase}·${s.effort}` : modelBase;
     const model = truncateToWidth(modelFull, 26, "");
     // opencode-aligned: plan = orange, build = blue.
     const mode = modeBadge(s.mode);
