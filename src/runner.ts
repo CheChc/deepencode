@@ -156,6 +156,10 @@ export class TuiRuntime {
         this.lastSnap = snap;
         this.statusBar.update(snap);
         this.syncSpinner(snap.running ?? false);
+        // Session events only mutate component state; pi-tui repaints on
+        // requestRender, so every status/transcript change must ask for one.
+        // Without this, streamed replies stay invisible until the next input.
+        this.tui.requestRender();
       },
       onModeChanged: (mode) => {
         this.mode = mode;
@@ -258,6 +262,7 @@ export class TuiRuntime {
         this.spinnerFrame += 1;
         this.lastSnap = { ...this.lastSnap, spinnerFrame: this.spinnerFrame };
         this.statusBar.update(this.lastSnap);
+        this.tui.requestRender();
       }, 150);
     } else if (!running && this.spinnerTimer) {
       clearInterval(this.spinnerTimer);
