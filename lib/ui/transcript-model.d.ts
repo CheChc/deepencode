@@ -29,6 +29,9 @@ export type TranscriptItem = {
 } | {
     kind: "divider";
     text: string;
+} | {
+    kind: "welcome";
+    lines: string[];
 };
 /** Derives a compact one-line display for an item (used by transcript + pickers). */
 export declare function summarizeItem(item: TranscriptItem): string;

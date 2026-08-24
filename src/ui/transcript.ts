@@ -1,10 +1,12 @@
 import { Container, Markdown, Text, truncateToWidth } from "@earendil-works/pi-tui";
+import chalk from "chalk";
 import { theme, markdownTheme } from "./theme.js";
 import type { TranscriptItem } from "./transcript-model.js";
 
 /**
- * Renders the conversation stream: user messages, streamed assistant markdown,
- * collapsed thinking rows, and tool-call/result lines.
+ * Renders the conversation stream: welcome banner, user/assistant messages,
+ * collapsed thinking rows, and tool-call/result lines — each with a coherent
+ * opencode-style visual voice (role glyphs, mode-aware accents, black canvas).
  * The runner appends items as session events land; streaming assistant items
  * are updated in place so the scroll view follows the growing content.
  */
@@ -45,33 +47,40 @@ export class Transcript extends Container {
   private buildChild(item: TranscriptItem): Text | Markdown {
     switch (item.kind) {
       case "assistant":
-        return new Markdown(item.text, 0, 0, markdownTheme);
+        return new Markdown(item.text, 0, 0, markdownTheme, {
+          // Keep the dark canvas consistent on terminals without OSC 11.
+          bgColor: (text) => chalk.bgBlack(text),
+        });
+      case "welcome":
+        return new Text(item.lines.join("\n"), 0, 0, (text) => chalk.bgBlack(text));
       default:
-        return new Text(this.plainLines(item).join("\n"), 0, 0);
+        return new Text(this.plainLines(item).join("\n"), 0, 0, (text) => chalk.bgBlack(text));
     }
   }
 
   private plainLines(item: TranscriptItem): string[] {
     switch (item.kind) {
       case "user":
-        return [`${theme.user("❯")} ${item.text}`];
+        return [`${chalk.hex("#58a6ff")("❯")} ${chalk.bold(item.text)}`];
       case "thinking": {
         const dur = item.durationMs ? ` · ${(item.durationMs / 1000).toFixed(1)}s` : "";
         const preview = item.text.replace(/\s+/g, " ").slice(0, 90);
-        return [theme.faint(`${theme.info("✦")} think · ${preview}${dur}`)];
+        return [theme.faint(`  ${chalk.hex("#58a6ff")("✦")} think · ${chalk.italic(preview)}${dur}`)];
       }
       case "tool-call": {
-        const glyph = item.running ? theme.info("✦") : theme.faint("·");
-        return [theme.info(`${glyph} ${item.name}`) + theme.faint(` ${item.argsPreview.slice(0, 80)}`)];
+        const glyph = item.running ? chalk.hex("#58a6ff")("⠿") : chalk.hex("#58a6ff")("▸");
+        return [`  ${glyph} ${chalk.hex("#58a6ff").bold(item.name)}${theme.faint(` ${item.argsPreview.slice(0, 70)}`)}`];
       }
       case "tool-result": {
         const glyph = item.ok ? theme.ok("✓") : theme.err("✖");
-        return [theme.faint(`${glyph} ${item.name} · ${item.summary}`)];
+        return [`  ${glyph} ${theme.faint(`${item.name} · ${item.summary}`)}`];
       }
       case "system":
-        return [theme.faint(item.text)];
+        return [theme.faint(`  ${item.text}`)];
       case "divider":
-        return [theme.divider(`── ${item.text} ──`)];
+        return [theme.divider(`  ── ${item.text} ──`)];
+      case "welcome":
+        return item.lines.map((line, i) => (i === 0 ? line : theme.faint(line)));
       case "assistant":
         return [item.text];
     }

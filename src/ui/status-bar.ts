@@ -1,7 +1,7 @@
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { Component } from "@earendil-works/pi-tui";
 import chalk from "chalk";
-import { modeBadge } from "./theme.js";
+import { modeBadge, spinnerFrames } from "./theme.js";
 
 /** Snapshot feeding the Hermes-style status bar. */
 export interface StatusSnapshot {
@@ -33,6 +33,8 @@ export interface StatusSnapshot {
   compactions?: number;
   /** True while a turn is running (shows a live glyph). */
   running?: boolean;
+  /** Spinner frame counter advanced while running. */
+  spinnerFrame?: number;
   /** True in automatic-approval mode (danger-full-access). */
   yolo?: boolean;
 }
@@ -92,7 +94,11 @@ export class StatusBar implements Component {
 
   private segments(width: number): string[] {
     const s = this.snap;
-    const glyph = s.running ? chalk.cyan("✦") : s.yolo ? chalk.red("⚠") : "⚕";
+    const glyph = s.running
+      ? chalk.hex("#58a6ff")(spinnerFrames[(s.spinnerFrame ?? 0) % spinnerFrames.length])
+      : s.yolo
+        ? chalk.red("⚠")
+        : chalk.hex("#58a6ff")("⚕");
     // Hermes truncates long model names; the official provider shows the bare
     // model id while third-party routes keep the provider prefix for context.
     const modelFull = s.provider === "deepseek-official" ? s.model : `${s.provider}/${s.model}`;

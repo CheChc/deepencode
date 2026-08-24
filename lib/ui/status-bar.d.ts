@@ -29,6 +29,8 @@ export interface StatusSnapshot {
     compactions?: number;
     /** True while a turn is running (shows a live glyph). */
     running?: boolean;
+    /** Spinner frame counter advanced while running. */
+    spinnerFrame?: number;
     /** True in automatic-approval mode (danger-full-access). */
     yolo?: boolean;
 }

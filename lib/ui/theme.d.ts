@@ -27,6 +27,21 @@ export declare const modeColors: {
 };
 export declare function modeBadge(mode: "build" | "plan"): string;
 export declare function modeText(mode: "build" | "plan", text: string): string;
+/** Terminal spinner frames for the running turn indicator. */
+export declare const spinnerFrames: string[];
+/** Border tone for dialogs: blue by default, orange for caution/plan review. */
+export declare const dialogBorders: {
+    readonly blue: {
+        readonly accent: import("chalk").ChalkInstance;
+        readonly border: import("chalk").ChalkInstance;
+        readonly hint: import("chalk").ChalkInstance;
+    };
+    readonly orange: {
+        readonly accent: import("chalk").ChalkInstance;
+        readonly border: import("chalk").ChalkInstance;
+        readonly hint: import("chalk").ChalkInstance;
+    };
+};
 export declare const markdownTheme: {
     heading: (text: string) => string;
     link: (text: string) => string;

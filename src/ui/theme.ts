@@ -37,6 +37,23 @@ export function modeText(mode: "build" | "plan", text: string): string {
   return (mode === "plan" ? modeColors.plan.text : modeColors.build.text)(text);
 }
 
+/** Terminal spinner frames for the running turn indicator. */
+export const spinnerFrames = ["⠋", "⠙", "⠸", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+/** Border tone for dialogs: blue by default, orange for caution/plan review. */
+export const dialogBorders = {
+  blue: {
+    accent: chalk.bgHex("#58a6ff").black,
+    border: chalk.hex("#3b82f6"),
+    hint: chalk.gray,
+  },
+  orange: {
+    accent: chalk.bgHex("#fb923c").black,
+    border: chalk.hex("#ea580c"),
+    hint: chalk.gray,
+  },
+} as const;
+
 export const markdownTheme = {
   heading: (text: string) => chalk.bold.hex("#eaf2ff")(text),
   link: (text: string) => chalk.underline.hex("#58a6ff")(text),

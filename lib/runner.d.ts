@@ -22,6 +22,9 @@ export declare class TuiRuntime {
     private mode;
     private ctrlCPending;
     private originalBackground?;
+    private lastSnap?;
+    private spinnerTimer?;
+    private spinnerFrame;
     private readonly disposers;
     constructor(opts: TuiRuntimeOptions);
     start(): Promise<void>;
@@ -33,6 +36,8 @@ export declare class TuiRuntime {
     private applyBlackBackground;
     private restoreBackground;
     private onSubmit;
+    /** 150ms spinner while a turn is running; pauses when idle. */
+    private syncSpinner;
     private handleCtrlC;
     private toggleMode;
     private cyclePermission;

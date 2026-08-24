@@ -1,7 +1,7 @@
 import { Key, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { Component, Focusable, OverlayHandle, TUI } from "@earendil-works/pi-tui";
 import chalk from "chalk";
-import { theme } from "./theme.js";
+import { dialogBorders } from "./theme.js";
 
 export interface PickItem {
   value: string;
@@ -9,9 +9,38 @@ export interface PickItem {
   description?: string;
 }
 
+export type DialogTone = "blue" | "orange";
+
+/** Full-width black pad; used for every bounded line so dialogs read as one canvas. */
+function padLine(line: string, width: number): string {
+  return chalk.bgBlack(line + " ".repeat(Math.max(0, width - visibleWidth(line))));
+}
+
+/** Renders a line inside an ASCII box: `│ ` + content padded + `│`. */
+function boxLine(content: string, innerWidth: number, border: (s: string) => string): string {
+  return border(`│ `) + content + " ".repeat(Math.max(0, innerWidth - visibleWidth(content))) + ` ${border("│")}`;
+}
+
+function buildBox(lines: Array<{ content: string; border?: boolean; pad?: boolean }>, width: number, tone: DialogTone): string[] {
+  const palette = dialogBorders[tone];
+  const border = palette.border;
+  const innerWidth = Math.max(8, width - 6);
+  const out: string[] = [];
+  const title = lines[0]?.content ?? "";
+  const titlePlain = title.replace(/\x1b\[[0-9;]*m/g, "");
+  const titleVisible = visibleWidth(titlePlain);
+  const topPad = Math.max(1, width - titleVisible - 6);
+  out.push(padLine(border(`┌─ `) + title + " ".repeat(topPad) + border("─┐"), width));
+  for (const line of lines.slice(1)) {
+    out.push(padLine(boxLine(line.content, innerWidth, border), width));
+  }
+  out.push(padLine(border(`└─`) + "─".repeat(innerWidth + 1) + border("─┘"), width));
+  return out;
+}
+
 /**
- * Self-contained modal option menu: renders title/body/options and owns its
- * own keyboard handling, so it works regardless of overlay focus routing.
+ * Self-contained modal option menu: a bordered dialog that owns its keyboard
+ * handling, so it works regardless of overlay focus routing.
  */
 class OptionMenu implements Component, Focusable {
   focused = false;
@@ -23,6 +52,7 @@ class OptionMenu implements Component, Focusable {
     private readonly title: string,
     private readonly body: string,
     private readonly options: PickItem[],
+    private readonly tone: DialogTone = "blue",
   ) {}
 
   private current(): PickItem | undefined {
@@ -43,27 +73,37 @@ class OptionMenu implements Component, Focusable {
   }
 
   render(width: number): string[] {
-    const pad = (line: string) => chalk.bgBlack(truncateToWidth(line, width) + " ".repeat(Math.max(0, width - visibleWidth(line))));
-    const lines: string[] = [pad(theme.accent(this.title))];
-    for (const line of this.body.split("\n")) {
-      lines.push(pad(line));
-    }
-    lines.push(pad(""));
-    this.options.forEach((opt, i) => {
-      const prefix = i === this.selectedIndex ? `${theme.accent("→")} ` : "  ";
-      const desc = opt.description ? theme.faint(`  ${opt.description}`) : "";
-      lines.push(truncateToWidth(`${prefix}${opt.label}${desc}`, width));
+    const palette = dialogBorders[this.tone];
+    const accent = palette.accent;
+    const bodyLines = this.body === "" ? [] : this.body.split("\n");
+    const optionLines = this.options.map((opt, i) => {
+      const selected = i === this.selectedIndex;
+      const prefix = selected ? chalk.hex("#58a6ff")("▸ ") : "   ";
+      const label = selected ? chalk.bgHex("#1e3a5f").white(opt.label) : chalk.white(opt.label);
+      const desc = opt.description && !selected ? chalk.gray(`  ${opt.description}`) : "";
+      return `${prefix}${label}${desc}`;
     });
-    lines.push("");
-    lines.push(theme.faint("↑/↓ 选择 · Enter 确认 · Esc 取消"));
-    return lines;
+    const lines: Array<{ content: string; border?: boolean }> = [
+      { content: accent(` ${this.title} `) },
+    ];
+    for (const l of bodyLines) lines.push({ content: whiteIfEmpty(l) });
+    if (bodyLines.length > 0) lines.push({ content: "" });
+    for (const l of optionLines) lines.push({ content: l });
+    lines.push({ content: "" });
+    lines.push({ content: chalk.gray("↑/↓ 选择 · Enter 确认 · Esc 取消") });
+    return buildBox(lines.map((l) => ({ content: l.content })), width, this.tone);
   }
 
   invalidate(): void {}
 }
 
+function whiteIfEmpty(s: string): string {
+  return s === "" ? " " : s;
+}
+
 /**
- * Single-line free-text prompt with its own focus/key handling.
+ * Single-line free-text prompt with its own focus/key handling, same boxed
+ * visual language as the option menu.
  */
 class TextPrompt implements Component, Focusable {
   focused = false;
@@ -74,7 +114,8 @@ class TextPrompt implements Component, Focusable {
 
   constructor(
     private readonly title: string,
-    initial: string,
+    private readonly initial: string,
+    private readonly tone: DialogTone = "blue",
   ) {
     this.value = initial;
     this.cursor = initial.length;
@@ -118,7 +159,6 @@ class TextPrompt implements Component, Focusable {
       this.cursor = this.value.length;
       return;
     }
-    // Printable characters only; ignore escape sequences and control keys.
     if (typeof data === "string" && !data.startsWith("\x1b") && data >= " " && !data.startsWith("\x7f")) {
       const before = this.value.slice(0, this.cursor);
       const after = this.value.slice(this.cursor);
@@ -128,18 +168,19 @@ class TextPrompt implements Component, Focusable {
   }
 
   render(width: number): string[] {
+    const palette = dialogBorders[this.tone];
     const before = this.value.slice(0, this.cursor);
     const at = this.value.slice(this.cursor, this.cursor + 1) || " ";
     const after = this.value.slice(this.cursor + 1);
-    const line = `${theme.accent("?")} ${before}${chalk.inverse(at)}${after}`;
-    const pad = (s: string) => chalk.bgBlack(truncateToWidth(s, width) + " ".repeat(Math.max(0, width - visibleWidth(s))));
-    return [
-      pad(theme.accent(this.title)),
-      pad(""),
-      pad(line),
-      pad(""),
-      pad(theme.faint("Enter 确认 · Esc 取消")),
+    const line = ` ${before}${chalk.bgHex("#2563eb").white(at)}${after}`;
+    const lines = [
+      { content: palette.accent(` ${this.title} `) },
+      { content: "" },
+      { content: line },
+      { content: "" },
+      { content: chalk.gray("Enter 确认 · Esc 取消") },
     ];
+    return buildBox(lines, width, this.tone);
   }
 
   invalidate(): void {}
@@ -166,7 +207,7 @@ export function pickOne(
   return handle;
 }
 
-/** Modal option picker for approvals and questions. */
+/** Modal option picker for approvals and questions (tone: orange for caution). */
 export function pickOption(
   tui: TUI,
   title: string,
@@ -174,8 +215,9 @@ export function pickOption(
   options: PickItem[],
   onPick: (value: string) => void,
   onCancel?: () => void,
+  tone: DialogTone = "blue",
 ): OverlayHandle {
-  const menu = new OptionMenu(title, body, options);
+  const menu = new OptionMenu(title, body, options, tone);
   const handle = tui.showOverlay(menu, { maxHeight: "80%", minWidth: 36, width: "60%" });
   menu.onSelect = (value) => {
     handle.hide();

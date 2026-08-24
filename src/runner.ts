@@ -9,6 +9,7 @@ import {
   matchesKey,
   isViewportTUI,
 } from "@earendil-works/pi-tui";
+import chalk from "chalk";
 import type { Context } from "@deepseek-ai/cordis";
 import type { ApprovalRequest, ApprovalOutcome } from "@deepseek-ai/dsh-user-approval";
 import type { AskUserQuestionRequest } from "@deepseek-ai/dsh-user-questions";
@@ -16,13 +17,16 @@ import { SessionController } from "./services/session-view.js";
 import { Transcript } from "./ui/transcript.js";
 import { StatusBar } from "./ui/status-bar.js";
 import type { StatusSnapshot } from "./ui/status-bar.js";
-import { theme, modeText } from "./ui/theme.js";
+import { theme, modeText, spinnerFrames } from "./ui/theme.js";
 import { COMMANDS } from "./commands.js";
 import type { CommandEnv } from "./commands.js";
 import { pickOption } from "./ui/dialogs.js";
 
+// Border color follows the session mode: blue = build, orange = plan.
+let editorBorder: (s: string) => string = (s) => chalk.hex("#3b82f6").dim(s);
+
 const editorTheme = {
-  borderColor: (s: string) => theme.faint(s),
+  borderColor: (s: string) => editorBorder(s),
   selectList: {
     selectedPrefix: (s: string) => theme.accent(s),
     selectedText: (s: string) => theme.accent(s),
@@ -63,6 +67,9 @@ export class TuiRuntime {
   private mode: "build" | "plan" = "build";
   private ctrlCPending = false;
   private originalBackground?: { r: number; g: number; b: number };
+  private lastSnap?: StatusSnapshot;
+  private spinnerTimer?: ReturnType<typeof setInterval>;
+  private spinnerFrame = 0;
   private readonly disposers: Array<() => void> = [];
 
   constructor(opts: TuiRuntimeOptions) {
@@ -144,15 +151,31 @@ export class TuiRuntime {
       ctx: this.ctx,
       resumeId: this.resumeId,
       transcript: this.transcript,
-      onStatus: (snap: StatusSnapshot) => this.statusBar.update(snap),
+      onStatus: (snap: StatusSnapshot) => {
+        this.lastSnap = snap;
+        this.statusBar.update(snap);
+        this.syncSpinner(snap.running ?? false);
+      },
       onModeChanged: (mode) => {
         this.mode = mode;
+        editorBorder = mode === "plan" ? (s: string) => chalk.hex("#ea580c").dim(s) : (s: string) => chalk.hex("#3b82f6").dim(s);
+        this.editor.borderColor = editorBorder;
       },
     });
     await this.controller.start(this.resumeId);
 
-    this.transcript.append({ kind: "divider", text: `DeepSeek Harness TUI · ${process.cwd()}` });
-    this.transcript.append({ kind: "system", text: "Tab 切换 build/plan · Shift+Tab 切换权限 · /help 查看命令 · Ctrl+C 取消/退出" });
+    // Hermes-style welcome banner: product identity, model, workspace, hints.
+    const cwd = process.cwd().replace(process.env.HOME ?? "~", "~");
+    const sel = this.controller.selection;
+    this.transcript.append({
+      kind: "welcome",
+      lines: [
+        `${theme.accent("╭─")} ${theme.accent.bold("deepencode")} ${theme.faint("· DeepSeek Harness TUI")}`,
+        `${theme.accent("│")} 模型 ${sel ? `${sel.model}${sel.reasoningEffort ? ` (${sel.reasoningEffort})` : ""}` : "…"}${theme.faint(" · ")}${cwd}`,
+        `${theme.accent("│")} ${theme.faint("Tab build⇄plan · Shift+Tab 权限 · /help · Ctrl+C 取消/退出")}`,
+        `${theme.accent("╰─")}`,
+      ],
+    });
 
     tui.setFocus(this.editor);
     tui.start();
@@ -223,6 +246,21 @@ export class TuiRuntime {
     this.tui.requestRender();
   }
 
+  /** 150ms spinner while a turn is running; pauses when idle. */
+  private syncSpinner(running: boolean): void {
+    if (running && !this.spinnerTimer) {
+      this.spinnerTimer = setInterval(() => {
+        if (!this.lastSnap) return;
+        this.spinnerFrame += 1;
+        this.lastSnap = { ...this.lastSnap, spinnerFrame: this.spinnerFrame };
+        this.statusBar.update(this.lastSnap);
+      }, 150);
+    } else if (!running && this.spinnerTimer) {
+      clearInterval(this.spinnerTimer);
+      this.spinnerTimer = undefined;
+    }
+  }
+
   private handleCtrlC(): void {
     if (this.controller?.agentHandle && this.controller.agentHandle.status === "running") {
       if (this.ctrlCPending) {
@@ -290,6 +328,7 @@ export class TuiRuntime {
             // Escape skips this question with an empty selection.
             resolve({ answers: [{ id: question.id, selected: [] }] });
           },
+          isPlanReview ? "orange" : "blue",
         );
       };
       askOne();
@@ -314,6 +353,7 @@ export class TuiRuntime {
         ],
         (value) => resolve(value as ApprovalOutcome),
         () => resolve("cancelled"),
+        "orange",
       );
       req.signal?.addEventListener("abort", () => resolve("cancelled"));
     });
@@ -332,6 +372,8 @@ export class TuiRuntime {
         /* noop */
       }
     }
+    if (this.spinnerTimer) clearInterval(this.spinnerTimer);
+    this.spinnerTimer = undefined;
     this.disposers.length = 0;
     this.restoreBackground();
     this.tui.stop();

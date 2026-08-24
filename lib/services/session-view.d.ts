@@ -32,6 +32,8 @@ export declare class SessionController {
     private disposed;
     constructor(opts: SessionControllerOptions);
     get agentHandle(): Agent | undefined;
+    get turnCount(): number;
+    get stepCount(): number;
     get selection(): ModelSelection | undefined;
     /** Mutate the live selection (takes effect on the next step). */
     setSelection(next: ModelSelection): void;

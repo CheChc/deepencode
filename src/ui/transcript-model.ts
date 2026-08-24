@@ -6,7 +6,8 @@ export type TranscriptItem =
   | { kind: "tool-call"; id: string; name: string; argsPreview: string; running?: boolean }
   | { kind: "tool-result"; id: string; name: string; ok: boolean; summary: string }
   | { kind: "system"; text: string }
-  | { kind: "divider"; text: string };
+  | { kind: "divider"; text: string }
+  | { kind: "welcome"; lines: string[] };
 
 /** Derives a compact one-line display for an item (used by transcript + pickers). */
 export function summarizeItem(item: TranscriptItem): string {
@@ -24,5 +25,7 @@ export function summarizeItem(item: TranscriptItem): string {
     case "system":
     case "divider":
       return item.text;
+    case "welcome":
+      return item.lines[0] ?? "";
   }
 }

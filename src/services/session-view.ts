@@ -59,6 +59,14 @@ export class SessionController {
     return this.agent;
   }
 
+  get turnCount(): number {
+    return this.turns;
+  }
+
+  get stepCount(): number {
+    return this.steps;
+  }
+
   get selection(): ModelSelection | undefined {
     return this.selectionRef.current;
   }
