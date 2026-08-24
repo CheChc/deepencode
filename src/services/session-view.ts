@@ -44,6 +44,8 @@ export class SessionController {
   private turns = 0;
   private steps = 0;
   private contextWindow?: number;
+  /** Eagerly rendered user inputs awaiting their matching user/message event. */
+  private readonly submittedQueue: string[] = [];
   private disposers: Array<() => void> = [];
   private ticker?: ReturnType<typeof setInterval>;
   private disposed = false;
@@ -143,6 +145,22 @@ export class SessionController {
   }
 
   private onSessionEvent(event: SessionEvent): void {
+    // Dedupe eagerly rendered user inputs: the session log replays the same
+    // message as user/message, so consume the oldest queued input on match.
+    if (event.type === "user/message") {
+      const data = event.data as { source?: { kind?: string }; content?: Array<{ type?: string; text?: string }> };
+      if (data.source?.kind === "user") {
+        const text = (data.content ?? [])
+          .filter((b) => b.type === "text")
+          .map((b) => b.text ?? "")
+          .join("");
+        if (this.submittedQueue.length > 0 && this.submittedQueue[0] === text) {
+          this.submittedQueue.shift();
+          this.pushStatus();
+          return;
+        }
+      }
+    }
     if (event.type === "turn/start") {
       this.running(true);
     } else if (event.type === "turn/end") {
@@ -188,7 +206,10 @@ export class SessionController {
   /** Send an ordinary user message (triggers a new turn). */
   submit(text: string): void {
     if (!this.agent) return;
+    // Eager render for instant feedback; the matching user/message event is
+    // deduped below so the line never appears twice.
     this.transcript.append({ kind: "user", text });
+    this.submittedQueue.push(text);
     this.agent.followup(
       createUserMessage({
         content: [{ type: "text", text }],

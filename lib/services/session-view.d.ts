@@ -27,6 +27,8 @@ export declare class SessionController {
     private turns;
     private steps;
     private contextWindow?;
+    /** Eagerly rendered user inputs awaiting their matching user/message event. */
+    private readonly submittedQueue;
     private disposers;
     private ticker?;
     private disposed;
